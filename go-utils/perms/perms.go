@@ -8,6 +8,7 @@ import (
     "os"
     "strconv"
     "strings"
+	"math/big"
 )
 
 type sourceArg struct {
@@ -144,77 +145,82 @@ func (p *permutator) dfs(path []int, used []bool, maxDepth int) {
     }
 }
 
-// Efficiently calculate the number of permutations without generating them
-func CountPermutationsFromFiles(sources []sourceArg, noRepeats bool) (int, error) {
+
+
+// CalculateOutputLines returns the number of output lines (permutations) as *big.Int
+func CalculateOutputLines(sources []sourceArg, seps []string, noRepeats bool) (*big.Int, error) {
+    // Gather all items and their source/depth
     var allItems []string
     var srcOfItem []int
     var srcDepths []int
 
     for srcIdx, src := range sources {
-        file, err := osOpen(src.Path)
+        f, err := osOpen(src.Path)
         if err != nil {
-            return 0, fmt.Errorf("ERROR opening %s: %v", src.Path, err)
+            return nil, fmt.Errorf("ERROR opening %s: %v", src.Path, err)
         }
-        scanner := bufioNewScanner(file)
-        for scanner.Scan() {
-            line := scanner.Text()
-            if line == "" {
+        sc := bufioNewScanner(f)
+        for sc.Scan() {
+            txt := sc.Text()
+            if txt == "" {
                 continue
             }
-            allItems = append(allItems, line)
+            allItems = append(allItems, txt)
             srcOfItem = append(srcOfItem, srcIdx)
         }
-        file.Close()
+        f.Close()
         srcDepths = append(srcDepths, src.Depth)
     }
 
-    // For each source, count how many items belong to it
-    srcCounts := make([]int, len(sources))
-    for _, srcIdx := range srcOfItem {
-        srcCounts[srcIdx]++
+    n := len(allItems)
+    if n == 0 || len(seps) == 0 {
+        return big.NewInt(0), nil
     }
 
-    // For each source, calculate the number of permutations for its depth
-    total := 0
-    for srcIdx, count := range srcCounts {
-        depth := srcDepths[srcIdx]
-        if count == 0 {
-            continue
+    // Helper: nPr (order matters, no repeats)
+    perm := func(n, r int) *big.Int {
+        if r < 0 || n < 0 || n < r {
+            return big.NewInt(0)
         }
-        if noRepeats {
-            // n!/(n-d)!
-            if count < depth {
-                continue
+        res := big.NewInt(1)
+        for i := 0; i < r; i++ {
+            res.Mul(res, big.NewInt(int64(n-i)))
+        }
+        return res
+    }
+    // Helper: base^exp (repeats allowed)
+    pow := func(base, exp int) *big.Int {
+        if exp < 0 || base < 0 {
+            return big.NewInt(0)
+        }
+        res := big.NewInt(1)
+        b := big.NewInt(int64(base))
+        for i := 0; i < exp; i++ {
+            res.Mul(res, b)
+        }
+        return res
+    }
+
+    total := big.NewInt(0)
+    sepFactor := big.NewInt(int64(len(seps)))
+
+    for i := 0; i < n; i++ {
+        maxDepth := srcDepths[srcOfItem[i]]
+        for l := 1; l <= maxDepth; l++ {
+            var cnt *big.Int
+            if noRepeats {
+                // pick l-1 more items out of (n-1) without repetition
+                cnt = perm(n-1, l-1)
+            } else {
+                // any of (n-1) items can occupy each of (l-1) positions
+                cnt = pow(n-1, l-1)
             }
-            subtotal := 1
-            for i := 0; i < depth; i++ {
-                subtotal *= (count - i)
-            }
-            total += subtotal
-        } else {
-            // n^d
-            subtotal := 1
-            for i := 0; i < depth; i++ {
-                subtotal *= count
-            }
-            total += subtotal
+            cnt.Mul(cnt, sepFactor)
+            total.Add(total, cnt)
         }
     }
     return total, nil
 }
-
-
-// Add this function to your code:
-
-// CountOutputLines runs the permutation logic and counts the number of output lines.
-func CountOutputLines(sources []sourceArg, seps []string, prefix, suffix string, noRepeats bool) (int, error) {
-    var count int
-    err := RunPermutator(sources, seps, prefix, suffix, noRepeats, func(_ string) {
-        count++
-    })
-    return count, err
-}
-
 
 
 func printUsage() {
@@ -267,14 +273,14 @@ func main() {
 
     // In your main(), replace the countOnly block with:
 	if countOnly {
-		count, err := CountOutputLines(sources, seps, prefix, suffix, noRepeats)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		fmt.Println(count)
-		os.Exit(0)
-	}
+        total, err := CalculateOutputLines(sources, seps, noRepeats)
+        if err != nil {
+            fmt.Fprintln(os.Stderr, err)
+            os.Exit(1)
+        }
+        fmt.Println(total)
+        os.Exit(0)
+    }
 
     err := RunPermutator(sources, seps, prefix, suffix, noRepeats, nil)
     if err != nil {
