@@ -2,7 +2,7 @@
 
 Performance based script are write in go.
 
-### `permute` Tool
+### `perms` Tool
 Source idea: https://github.com/tomnomnom/hacks/tree/master/perms
 
 Generate cross‐list permutations up to per‐source depths, with optional separators, prefix/suffix, and no-repeat control.
@@ -12,18 +12,17 @@ Generate cross‐list permutations up to per‐source depths, with optional sepa
 From your repo root (assuming module already initialized):
 
 ```bash
-cd perms
-go build -o ../bin/permute
+cd perms/; go build -o ../bin/perms ; cd ..
 ```
 
-> Binaries will end up in `../bin/permute` (or your `$GOBIN`).
+> Binaries will end up in `../bin/perms` (or your `$GOBIN`).
 
 ---
 
 #### ⚙️ Usage
 
 ```bash
-permute \
+perms \
   -source path/to/list1.txt:3 \
   -source path/to/list2.txt:2 \
   [-sep SEP]... \
@@ -69,7 +68,7 @@ Given:
 Generate up to depth 2 on animals and depth 1 on actions, with a hyphen:
 
 ```bash
-permute \
+perms \
   -source animals.txt:2 \
   -source actions.txt:1 \
   -sep "-" \
@@ -90,18 +89,3 @@ run
 ```
 
 ---
-
-#### 🔧 Integration
-
-Include `cmd/permute` in your repo’s build pipeline or Makefile:
-
-```makefile
-bin/permute:
-    go build -o bin/permute ./cmd/permute
-```
-
-Or simply:
-
-```bash
-go build ./cmd/permute
-```
