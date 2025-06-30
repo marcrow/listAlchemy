@@ -2,6 +2,22 @@
 
 Performance based script are write in go.
 
+### `permute` Tool
+
+A better performance perms tool.
+
+#### 📥 Installation
+
+From your repo root (assuming module already initialized):
+
+```bash
+cd permute/; go build -o ../bin/ ; cd ..
+```
+
+> Binaries will end up in `../bin/permute` (or your `$GOBIN`).
+
+---
+
 ### `perms` Tool
 Source idea: https://github.com/tomnomnom/hacks/tree/master/perms
 

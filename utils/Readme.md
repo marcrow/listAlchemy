@@ -18,8 +18,8 @@ Here’s a suggested Markdown “rubric”/section you can drop into your projec
 
 
 
-
-## Word Entropy Calculator
+## Analyse tools 
+### Word Entropy Calculator
 
 A simple, thread-pooled utility for computing Shannon entropy on words, filtering by an entropy range, and sorting them.
 
@@ -34,7 +34,7 @@ A simple, thread-pooled utility for computing Shannon entropy on words, filterin
 
 ---
 
-### 📥 How to Import
+#### 📥 How to Import
 
 ```python
 from entropy import WordEntropyCalculator
@@ -42,7 +42,7 @@ from entropy import WordEntropyCalculator
 
 ---
 
-### 🛠️ API Usage
+#### 🛠️ API Usage
 
 ```python
 from entropy import WordEntropyCalculator
@@ -67,7 +67,7 @@ print(result)
 # e.g. ['banana', 'orange', 'apple']
 ```
 
-#### Class: `WordEntropyCalculator`
+##### Class: `WordEntropyCalculator`
 
 | Method                               | Description                                                                                   |
 |--------------------------------------|-----------------------------------------------------------------------------------------------|
@@ -78,7 +78,7 @@ print(result)
 
 ---
 
-### ▶️ CLI Usage
+#### ▶️ CLI Usage
 
 Once installed or placed in your `$PATH`:
 
@@ -100,7 +100,7 @@ python entropy.py --order increasing \
 
 ---
 
-### ⚠️ Error Handling
+#### ⚠️ Error Handling
 
 - Invalid types or empty word lists raise a clear exception.  
 - `max_entropy` must be ≥ `min_entropy`.  
@@ -108,21 +108,66 @@ python entropy.py --order increasing \
 
 
 
+---
 
-## WordExtractor
+
+## Token Extractor Script
+
+Idea from : https://github.com/tomnomnom/hacks/blob/master/tok/main.go
+
+### Features
+
+* **Customizable Length Filters**: Set minimum/maximum token lengths (`--min`, `--max`).
+* **Alpha‑Numeric Enforcement**: Optionally require tokens to contain both letters and numbers (`--alpha-num-only`).
+* **Delimiter Exceptions**: Treat specified characters as part of tokens rather than delimiters (`--delim-exceptions`).
+* **URL‑Decoding**: Automatically decodes URL‑encoded sequences (e.g. `%20`).
+* **Occurrence Counting**: Counts total occurrences of each token across all domains.
+* **Separator Tracking**: Records the maximum number of non‑alphanumeric (excluding `.`) separators found in any domain for each token. (Amazing for permutation depth)
+
+### Integration
+
+1. **Add to Project**: Copy `tok.py` into your repo.
+2. **Make Executable**: Run `chmod +x tok.py`.
+3. **Install Dependencies**: Requires only Python 3.x standard library.
+4. **Import (optional)**: To reuse in code:
+
+   ```python
+   from tok import TokenExtractor
+   extractor = TokenExtractor(minlength=2, maxlength=20)
+   tokens = list(extractor.extract_tokens('example.com'))
+   ```
+
+### CLI Usage
+
+```bash
+# Basic usage: read domains from stdin, output "token count max_separators"
+cat domains.txt | ./tok.py --min 3 --max 15 --alpha-num-only --delim-exceptions "-_"
+
+# Flags:
+#   --min N            Minimum token length (default: 1)
+#   --max N            Maximum token length (default: 25)
+#   --alpha-num-only   Only include tokens with both letters & numbers
+#   --delim-exceptions CHARS  Characters to treat as non-delimiters
+```
+
+
+
+## Web
+
+### WordExtractor
 
 Target : subdomain enumeration.
 
-### What it does
+#### What it does
 `WordExtractor` fetches any webpage, strips out HTML/JS/CSS, extracts all words, filters them by length, counts how often each appears, and returns a sorted list of unique words by frequency.
 
-### Installation
+#### Installation
 Make sure your environment has:
 ```bash
 pip install requests beautifulsoup4
 ```
 
-### How to import
+#### How to import
 If your package layout is:
 ```
 your_project/
@@ -134,9 +179,9 @@ then in your code simply:
 from webExtractor import WordExtractor
 ```
 
-### How to use
+#### How to use
 
-#### As a library
+##### As a library
 ```python
 # instantiate with URL, minimum and maximum word lengths:
 extractor = WordExtractor(
@@ -153,7 +198,7 @@ for word, count in word_counts[:20]:
     print(f"{word}: {count}")
 ```
 
-#### From the command line
+##### From the command line
 ```bash
 cd utils/web
 # basic usage:
@@ -166,7 +211,7 @@ python webExtractor.py https://example.com --min 4 --max 10
 python webExtractor.py https://example.com --min 4 --max 10 --verbose
 ```
 
-### Constructor arguments
+#### Constructor arguments
 | Argument    | Type    | Default | Description                                 |
 |-------------|---------|---------|---------------------------------------------|
 | `url`       | `str`   | —       | The webpage URL to fetch                    |
