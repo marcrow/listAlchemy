@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"math/big"
 )
 
 // --- Argument Types ---
@@ -269,60 +270,81 @@ func RunPermutatorFast(sources []sourceArg, seps []string, prefix, suffix string
 
 // --- Counting Logic (unchanged) ---
 
-func CalculateOutputLines(sources []sourceArg, seps []string, noRepeats bool) (int, error) {
-	var allItems []string
-	var srcOfItem []int
-	var srcDepths []int
+// CalculateOutputLines returns the number of output lines (permutations) as *big.Int
+func CalculateOutputLines(sources []sourceArg, seps []string, noRepeats bool) (*big.Int, error) {
+    // Gather all items and their source/depth
+    var allItems []string
+    var srcOfItem []int
+    var srcDepths []int
 
-	for srcIdx, src := range sources {
-		file, err := osOpen(src.Path)
-		if err != nil {
-			return 0, fmt.Errorf("ERROR opening %s: %v", src.Path, err)
-		}
-		scanner := bufioNewScanner(file)
-		for scanner.Scan() {
-			line := scanner.Text()
-			if line == "" {
-				continue
-			}
-			allItems = append(allItems, line)
-			srcOfItem = append(srcOfItem, srcIdx)
-		}
-		file.Close()
-		srcDepths = append(srcDepths, src.Depth)
-	}
+    for srcIdx, src := range sources {
+        f, err := osOpen(src.Path)
+        if err != nil {
+            return nil, fmt.Errorf("ERROR opening %s: %v", src.Path, err)
+        }
+        sc := bufioNewScanner(f)
+        for sc.Scan() {
+            txt := sc.Text()
+            if txt == "" {
+                continue
+            }
+            allItems = append(allItems, txt)
+            srcOfItem = append(srcOfItem, srcIdx)
+        }
+        f.Close()
+        srcDepths = append(srcDepths, src.Depth)
+    }
 
-	count := 0
-	var dfs func(path []int, used []bool, maxDepth int)
-	dfs = func(path []int, used []bool, maxDepth int) {
-		depth := len(path)
-		last := path[depth-1]
-		if noRepeats {
-			used[last] = true
-			defer func() { used[last] = false }()
-		}
-		if depth >= 1 && depth <= maxDepth {
-			count += len(seps)
-		}
-		if depth == maxDepth {
-			return
-		}
-		for next := 0; next < len(allItems); next++ {
-			if noRepeats && used[next] {
-				continue
-			}
-			dfs(append(path, next), used, maxDepth)
-		}
-	}
-	n := len(allItems)
-	used := make([]bool, n)
-	for i := 0; i < n; i++ {
-		src := srcOfItem[i]
-		maxDepth := srcDepths[src]
-		dfs([]int{i}, used, maxDepth)
-	}
-	return count, nil
+    n := len(allItems)
+    if n == 0 || len(seps) == 0 {
+        return big.NewInt(0), nil
+    }
+
+    // Helper: nPr (order matters, no repeats)
+    perm := func(n, r int) *big.Int {
+        if r < 0 || n < 0 || n < r {
+            return big.NewInt(0)
+        }
+        res := big.NewInt(1)
+        for i := 0; i < r; i++ {
+            res.Mul(res, big.NewInt(int64(n-i)))
+        }
+        return res
+    }
+    // Helper: base^exp (repeats allowed)
+    pow := func(base, exp int) *big.Int {
+        if exp < 0 || base < 0 {
+            return big.NewInt(0)
+        }
+        res := big.NewInt(1)
+        b := big.NewInt(int64(base))
+        for i := 0; i < exp; i++ {
+            res.Mul(res, b)
+        }
+        return res
+    }
+
+    total := big.NewInt(0)
+    sepFactor := big.NewInt(int64(len(seps)))
+
+    for i := 0; i < n; i++ {
+        maxDepth := srcDepths[srcOfItem[i]]
+        for l := 1; l <= maxDepth; l++ {
+            var cnt *big.Int
+            if noRepeats {
+                // pick l-1 more items out of (n-1) without repetition
+                cnt = perm(n-1, l-1)
+            } else {
+                // any of (n-1) items can occupy each of (l-1) positions
+                cnt = pow(n-1, l-1)
+            }
+            cnt.Mul(cnt, sepFactor)
+            total.Add(total, cnt)
+        }
+    }
+    return total, nil
 }
+
 
 // --- CLI and Usage ---
 
